@@ -1,0 +1,45 @@
+.minimapi_client_ui {
+	border-collapse: collapse;
+	border: solid 1px grey;
+	position: relative;
+	font-family: arial;
+}
+
+.minimapi_client_ui th,td {
+	padding: 3px 2px 3px 2px;
+	text-align: center;
+}
+
+.minimapi_client_ui thead tr {
+	background: grey;
+	color: white;
+}
+
+.minimapi_client_ui thead th{
+	background: inherit;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.minimapi_client_ui tbody tr{
+	background-color: white;
+}
+
+.minimapi_client_ui tbody tr:nth-child(odd){
+	background-color: #ebebeb;
+}
+
+.minimapi_client_ui tbody tr:hover{
+	background: #e3f9ff;
+}
+
+.minimapi_client_ui input[type=number] {
+	width: 7em;
+}
+
+.minimapi_client_ui .cross {
+	font-weight: bold;
+	color: red;
+	cursor: pointer;
+}
