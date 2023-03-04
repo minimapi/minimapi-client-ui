@@ -1,9 +1,10 @@
 class MinimAPI_UI {
-	constructor(api_client, data_type, table_id){
+	constructor(api_client, data_type, table_id, filters={}){
 		this.api = api_client
 		this.data_type = data_type
 		this.table_id = table_id
 		this.table = document.getElementById(table_id)
+		this.filters = filters
 		this.prepare_table()
 		this.load_header()
 	}
@@ -29,9 +30,11 @@ class MinimAPI_UI {
 		this.header_row = document.getElementById(this.table_id+'_header_row')
 		this.form_row = document.getElementById(this.table_id+'_form_row')	
 
-		let form = document.createElement('form')
-		form.id = this.table_id+'_minimapi_ui_form'
-		document.body.appendChild(form)
+		if(!document.getElementById(this.table_id+'_minimapi_ui_form')){
+			let form = document.createElement('form')
+			form.id = this.table_id+'_minimapi_ui_form'
+			document.body.appendChild(form)
+		}
 	}
 
 	load_header(){
@@ -43,7 +46,7 @@ class MinimAPI_UI {
 			this.header_row.appendChild(header_element)
 
 			var cell = document.createElement('td')
-			
+
 			if(this.api.model[this.data_type][property].type == 'foreign'){
 				var input = document.createElement('select')
 				this.api.list(property).then((result) => this.insert_options(result, property))
@@ -51,6 +54,9 @@ class MinimAPI_UI {
 				var input = document.createElement('input')
 				input.placeholder = property
 				input.type = this.api.model[this.data_type][property].type
+				if(property in this.filters){
+					input.value = this.filters[property]
+				}
 			}
 			input.name = property
 			input.setAttribute('form', this.table_id+'_minimapi_ui_form')
@@ -66,7 +72,7 @@ class MinimAPI_UI {
 		button.value = 'search'
 		button.setAttribute('form', this.table_id+'_minimapi_ui_form')
 		button.onclick = event => {
-			this.send_form('search', event.target.form);
+			this.send_form('search', event.target.form)
 		}
 		cell.appendChild(button)
 		var button = document.createElement('input')
@@ -74,13 +80,13 @@ class MinimAPI_UI {
 		button.value = 'create'
 		button.setAttribute('form', this.table_id+'_minimapi_ui_form')
 		button.onclick = event => {
-			this.send_form('create', event.target.form);
+			this.send_form('create', event.target.form)
 		}
 		cell.appendChild(button)
 
 		this.form_row.appendChild(cell)
 
-		this.api.list(this.data_type).then((result) => this.load_data(result))
+		this.api.search(this.data_type, this.filters).then((result) => this.load_data(result))
 	}
 
 	load_data(result){
@@ -124,6 +130,9 @@ class MinimAPI_UI {
 			option.value = element['id']
 			option.innerHTML = element[this.api.model[this.data_type][data_type]['show']]
 			select.appendChild(option)
+		}
+		if(data_type in this.filters){
+			select.value = this.filters[data_type]
 		}
 	}
 
