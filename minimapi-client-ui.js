@@ -1,5 +1,5 @@
 class MinimAPI_UI {
-	constructor(api_client, data_type, table_id, filters={}){
+	constructor(api_client, data_type, table_id, filters={}, special_types=[]){
 		this.api = api_client
 		this.data_type = data_type
 		this.table_id = table_id
@@ -7,6 +7,10 @@ class MinimAPI_UI {
 		this.filters = filters
 		this.prepare_table()
 		this.load_header()
+		this.special_types = {}
+		for(let type of special_types){
+			this.special_types[type.name] = type
+		}
 	}
 
 	prepare_table(){
@@ -57,6 +61,7 @@ class MinimAPI_UI {
 				if(property in this.filters){
 					input.value = this.filters[property]
 				}
+				input.setAttribute('size',property.length);
 			}
 			input.name = property
 			input.setAttribute('form', this.table_id+'_minimapi_ui_form')
@@ -100,13 +105,38 @@ class MinimAPI_UI {
 				var new_cell = document.createElement('td')
 				new_cell.dataset.id = element['id']
 				new_cell.dataset.name = property
-				new_cell.innerHTML = element[property]
-				if(this.api.model[this.data_type][property]['type'] == 'foreign'){
+				let value = element[property]
+				let property_type = this.api.model[this.data_type][property]['type']
+				if(property_type in this.special_types){
+					value = this.special_types[property_type].show(value)
+				}
+				new_cell.innerHTML = (typeof(value) != 'string' || value.length <= 25)?value:value.slice(0,25)+'...'
+				new_cell.dataset.data = element[property]
+				if(property_type == 'foreign'){
 					new_cell.dataset.foreign = element[property]
 					new_cell.dataset.show = this.api.model[this.data_type][property]['show']
 				}
+				new_cell.onclick = async event => {
+					let clipboard = ''
+					if(this.api.model[this.data_type][property].tags.includes('unlistable')){
+						clipboard = await this.retrieve(event.target)
+					}else{
+						clipboard = event.target.dataset.data
+					}
+					if(property_type in this.special_types){
+						clipboard = await this.special_types[property_type].click(clipboard)
+					}
+					this.clipboard(clipboard)
+				}
 				new_cell.ondblclick = event => {
-					this.edit(event.target);
+					if(this.api.model[this.data_type][property].tags.includes('unlistable')){
+						this.retrieve(event.target).then((result) => {
+							event.target.innerHTML = result
+							this.edit(event.target)
+						})
+					}else{
+						this.edit(event.target)
+					}
 				}
 				new_row.appendChild(new_cell)
 			}
@@ -162,6 +192,19 @@ class MinimAPI_UI {
 			case 'create': this.api.create(this.data_type, form_data).then((result) => this.load_header(result));break;
 			case 'search': this.api.search(this.data_type, form_data).then((result) => this.load_data(result));break;
 		}
+	}
+
+	retrieve(element){
+		if(document.getElementById("edited")){
+			return
+		}
+		return this.api.read(this.data_type, element.dataset.id).then((result) => {
+			return result[0][element.dataset.name]
+		})
+	}
+
+	clipboard(data){
+		navigator.clipboard.writeText(data)
 	}
 
 	edit(element){
@@ -226,6 +269,9 @@ class MinimAPI_UI {
 			element.innerHTML = value
 		}else{
 			element.innerHTML = element.dataset.previous
+		}
+		if(this.api.model[this.data_type][element.dataset.name].tags.includes('unlistable')){
+			element.innerHTML = '-'
 		}
 		element.removeAttribute("data-previous")
 		element.id = ''
